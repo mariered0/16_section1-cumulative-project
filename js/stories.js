@@ -82,12 +82,10 @@ async function createNewStory(evt) {
   } = currentUser;
 
   const storyInput = await storyList.addStory(currentUser, newStory);
+  location.reload()
 }
 
-$('#story-form-btn').on('click', function(evt){
-  createNewStory(evt);
-  location.reload();
-});
+$('#story-form-btn').on('click', createNewStory);
 
 //toggle class of heart
 function toggleHeartClass(event) {

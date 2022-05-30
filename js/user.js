@@ -26,6 +26,7 @@ async function login(evt) {
   saveUserCredentialsInLocalStorage();
   updateUIOnUserLogin();
   //after login, display stories
+  hidePageComponents();
   putStoriesOnPage();
 }
 
