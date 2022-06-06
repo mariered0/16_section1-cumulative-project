@@ -80,10 +80,8 @@ class StoryList {
    *
    * Returns the new Story instance
    */
-  current
 
   async addStory(user, {title, author, url}) {
-    // UNIMPLEMENTED: complete this function!
     const token = user.loginToken;
 
     const res = await axios.post(`${BASE_URL}/stories`, {
@@ -96,10 +94,14 @@ class StoryList {
   }
 
   async deleteStory(story){
+    console.debug('deleteStory');
     const token = currentUser.loginToken;
-    const afterDeleted = storyList.stories.filter((s) => story[0].storyId !== s.storyId);
+
+    const afterDeleted = storyList.stories.filter((s) => story.storyId !== s.storyId);
     storyList.stories = afterDeleted;
-    await axios.delete(`${BASE_URL}/stories/${story[0].storyId}`, { data: {token}});
+    //this has to be at the end to display stories correctly after delete
+    await axios.delete(`${BASE_URL}/stories/${story.storyId}`, { data: {token}});
+    
   }
 };
 
@@ -235,19 +237,26 @@ class User {
     }
   }
 
-  //add story to favorite
+  //add story to favorite/unfavorite
+  async toggleStory(story, action) {
+    const method = action === 'favorite' ? 'post' : 'delete';
+    const token = this.loginToken;
+    await axios({
+      url: `${BASE_URL}/users/${this.username}/favorites/${story.storyId}`,
+      method: method,
+      data: {token}
+    });
+    action === 'favorite' ? this.favoriteStory(story) : this.unfavoriteStory(story);
+  }
+
   async favoriteStory(story) {
-    this.favorites.push(story[0]);
-    await axios.post(`${BASE_URL}/users/${this.username}/favorites/${story[0].storyId}`, {token: this.loginToken});
+    this.favorites.push(story);
   }
 
   async unfavoriteStory(story) {
-    // const {storyId} = story;
-    const afterDeleted = this.favorites.filter((s) => story[0].storyId !== s.storyId);
+    const afterDeleted = this.favorites.filter((s) => story.storyId !== s.storyId);
     this.favorites = afterDeleted;
-    await axios.delete(`${BASE_URL}/users/${this.username}/favorites/${story[0].storyId}`, { data: {token: this.loginToken}});
   }
-
 
 }
 

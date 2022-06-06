@@ -20,24 +20,31 @@ async function getAndShowStoriesOnStart() {
  */
 
 function generateStoryMarkup(story) {
-  // console.debug("generateStoryMarkup", story);
+  console.debug("generateStoryMarkup", story);
 
   const hostName = story.getHostName();
+  const isLoggedIn = Boolean(currentUser);
+
   return $(`
-      <li id="${story.storyId}">
-        <span class="heart">
-        <i id="${story.storyId}" class="${checkFavorite(story) ? 'fas' : 
-        'far'} fa-heart"></i>
-        </span>
-        <a href="${story.url}" target="a_blank" class="story-link">
-          ${story.title}
-        </a>
-        ${checkAuthor(story) ? '<span class="trash"><i class="fas fa-trash"></i></span>' : ''}
-        <small class="story-hostname">(${hostName})</small>
-        <small class="story-author">by ${story.author}</small>
-        <small class="story-user">posted by ${story.username}</small>
-       
-      </li>
+  <li id="${story.storyId}">
+  <span class="heart">
+  <i id="${story.storyId}" 
+  class="
+
+  ${isLoggedIn ? `${checkFavorite(story) ? 'fas' : 
+  'far'} fa-heart"></i>
+  </span>` : `"></i>
+  </span>`}
+  
+  <a href="${story.url}" target="a_blank" class="story-link">
+    ${story.title}
+  </a>
+  ${isLoggedIn ? `${checkAuthor(story) ? '<span class="trash"><i class="fas fa-trash"></i></span>' : ''}` : ''};
+  <small class="story-hostname">(${hostName})</small>
+  <small class="story-author">by ${story.author}</small>
+  <small class="story-user">posted by ${story.username}</small>
+ 
+</li>
     `);
 }
 
@@ -73,9 +80,9 @@ async function createNewStory(evt) {
   console.debug('createNewStory');
 
   const newStory = {
-  title: $('#story-input-title').val(),
-  author: $('#story-input-author').val(),
-  url: $('#story-input-url').val()
+    title: $('#story-input-title').val(),
+    author: $('#story-input-author').val(),
+    url: $('#story-input-url').val()
   }
   const {
     loginToken
@@ -96,11 +103,11 @@ function toggleHeartClass(event) {
   if ($(event.target).hasClass('far')) {
     $(event.target).removeClass('far');
     $(event.target).addClass('fas');
-    currentUser.favoriteStory(story);
+    currentUser.toggleStory(story[0], 'favorite');
   } else {
     $(event.target).removeClass('fas');
     $(event.target).addClass('far');
-    currentUser.unfavoriteStory(story);
+    currentUser.toggleStory(story[0], 'unfavorite');
   }
 }
 
@@ -113,33 +120,36 @@ $allStoriesList.on('click', '.heart', function (event) {
 //add eventListener to heart in favorite page
 $('.favorite-page').on('click', '.heart', function (event) {
   const id = $(event.target).attr('id');
-  if(storyList.stories.some(s => {s.storyId === id})){
+  if (storyList.stories.some((s) => s.storyId === id)) {
     toggleHeartClass(event);
-  }else{
-    const story = currentUser.favorites.filter(function(s) {
+
+
+    //this is for when story clicked is no longer in the main storyList
+  } else {
+    const story = currentUser.favorites.filter(function (s) {
       return s.storyId === id
     })
     if ($(event.target).hasClass('far')) {
       $(event.target).removeClass('far');
       $(event.target).addClass('fas');
-      currentUser.favoriteStory(story);
+      currentUser.toggleStory(story[0], 'favorite');
       putFavoritesOnPage()
     } else {
       $(event.target).removeClass('fas');
       $(event.target).addClass('far');
-      currentUser.unfavoriteStory(story);
-      putFavoritesOnPage()
+      currentUser.toggleStory(story[0], 'unfavorite');
+      putFavoritesOnPage();
     }
-    
+
   }
 });
 
 //put favorites on page
 function putFavoritesOnPage() {
+  console.debug('putFavoritesOnPage');
   const $favPage = $('.favorite-page');
   $favPage.empty();
   $favPage.append('<ol id="all-fav-list" class="stories-list"></ol>');
-
   for (let story of currentUser.favorites) {
     const $story = generateStoryMarkup(story);
     $('#all-fav-list').append($story);
@@ -147,22 +157,30 @@ function putFavoritesOnPage() {
   $favPage.show();
 };
 
-//delete story with transh can
+//delete story with trash can
 async function removeTrashCan(event) {
+  console.debug('removeTrashCan');
   const $targetId = $(event.target).closest('li').attr('id');
   const story = storyList.stories.filter(s => {
     return s.storyId === $targetId
   });
-  const deleteStory = await storyList.deleteStory(story);
-  if(currentUser.favorites.some(s => s.storyId === $targetId)){
-    const newFavArray = currentUser.favorites.filter(s => { return s.storyId !== $targetId})
+  await storyList.deleteStory(story[0])
+  if (currentUser.favorites.some((s => s.storyId === $targetId))) {
+    const newFavArray = currentUser.favorites.filter(function (s) {
+      return s.storyId !== $targetId;
+    })
     currentUser.favorites = newFavArray;
+    return putFavoritesOnPage();
   }
 }
 
-//add eventListener to trash can
+//add eventListener to trash can in main page
 $allStoriesList.on('click', '.trash', function (event) {
-  const id = $(event.target).closest('li').attr('id');
   removeTrashCan(event);
   putStoriesOnPage();
+});
+
+//add eventListener to trash can in favorite page
+$('#favorite-page').on('click', '.trash', function (event) {
+  removeTrashCan(event);
 });
